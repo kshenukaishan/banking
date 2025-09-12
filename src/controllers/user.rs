@@ -1,10 +1,10 @@
 use actix_web::{delete, get, post, put, Responder};
 use actix_web::web::Path;
 
-#[post("/users")]
-pub async fn create_user() -> impl Responder {
-    "User create"
-}
+// #[post("/users")]
+// pub async fn create_user() -> impl Responder {
+//     "User create"
+// }
 
 #[get("/users")]
 pub async fn users_list() -> impl Responder {

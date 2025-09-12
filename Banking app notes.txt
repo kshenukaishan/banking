@@ -1,0 +1,170 @@
+sqlx
+cargo install sqlx-cli
+
+.env -> "DATABASE_URL=mysql://root:1234@localhost/moneyflow"
+
+sqlx database --help
+sqlx database create
+sqlx migrate --help
+sqlx migrate add create_user_table
+sqlx migrate add create_categories_table
+sqlx migrate add create_transactions_table
+sqlx migrate run 
+sqlx database reset
+
+Serde
+cargo add serde
+cargo add serde_json
+
+Tokio
+cargo add tokio
+cargo add dotenv
+cargo add bcrypt
+
+SQL QUERIES
+-------------
+
+CREATE TABLE `users` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `email` VARCHAR(255) NOT NULL,
+    `first_name` VARCHAR(255) NOT NULL,
+    `last_name` VARCHAR(255) NOT NULL,
+    `password` VARCHAR(255) NOT NULL,
+    `balance` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    primary key (`id`)
+);
+
+CREATE TABLE `categories` (
+     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+     `user_id` BIGINT UNSIGNED NOT NULL,
+     `name` VARCHAR(255) NOT NULL,
+     `description` TEXT,
+     `balance` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+     `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     primary key (`id`),
+     FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `transactions` (
+      `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      `user_id` BIGINT UNSIGNED NOT NULL,
+      `category_id` BIGINT UNSIGNED NOT NULL,
+      `type` VARCHAR(255) NOT NULL,
+      `amount` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+      `memo` VARCHAR(255) NOT NULL,
+      `description` TEXT,
+      `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (`id`),
+      FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+      FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
+);
+
+CARGO TOML FILE (Dependencies)
+-----------------------------------
+
+actix-web = "4"
+bcrypt = "0.17.1"
+dotenv = "0.15.0"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.135"
+sqlx = { version = "0.8", features = [ "runtime-tokio", "tls-rustls", "mysql", "chrono" ] }
+tokio = { version = "1.47.1", features = ["full"] }
+
+Auth
+--------
+
+#[derive(Deserialize, Debug)]
+pub struct SignUpRequest {
+    pub email: String,
+    pub password: String,
+    pub firstname: String,
+    pub lastname: String,
+}
+
+#[post("/auth/sign-up")]
+pub async fn sign_up(state: web::Data<AppState>, data: web::Json<SignUpRequest>)
+    -> impl Responder {
+    let db = state.db.lock().await;
+
+    if(db::user::has_with_email(&db, &data.email).await) {
+        return HttpResponse::UnprocessableEntity().json(json!({
+            "status": "error",
+            "message": "User already exists!"
+        }).to_string())
+    }
+
+    db::user::create(&db, &data).await;
+
+    HttpResponse::Created().json(json!({
+        "status": "success",
+        "message": "Sign up SUCCESSFUL"
+    }).to_string()) 
+}
+
+#[post("/auth/sign-in")]
+pub async fn sign_in() -> impl Responder {
+    "Sign in"
+}
+
+ME (USER)
+----------
+
+#[get("/me")]
+pub async fn get_profile() -> impl Responder {
+    "Getting Profile"
+}
+
+#[post("/me")]
+pub async fn update_profile() -> impl Responder {
+    "Updating Profile"
+}
+
+Database connection:
+-------------------
+
+1. struct AppState {
+    db: Mutex<sqlx::MySqlPool>
+}
+
+2. dotenv::dotenv().ok();
+    let state = web::Data::new(AppState {
+        db: Mutex::new(MySqlPool::connect(&std::env::var("DATABASE_URL").unwrap())
+        .await.unwrap())
+    });
+
+3. app_data(state.clone())
+
+DATABASE METHODS
+-----------------
+
+pub async fn has_with_email(db: &MySqlPool, email: &str) -> bool {
+    let row = sqlx::query!("SELECT EXISTS(SELECT 1 FROM users WHERE email = ?) AS exists_val",
+        email
+    )
+    .fetch_one(db)
+    .await
+    .unwrap();
+
+    row.exists_val != 0
+}
+
+pub async fn create(db: &MySqlPool, user: &SignUpRequest) -> bool {
+
+    let hashed_password = hash(&user.password, DEFAULT_COST).unwrap();
+
+    sqlx::query!(
+        "INSERT INTO users (`email`, `password`, `first_name`, `last_name`)
+        VALUES (?, ?, ?, ?)
+        ",
+        &user.email,
+        &hashed_password,
+        &user.firstname,
+        &user.lastname
+    )
+    .execute(db)
+    .await.is_ok()
+}
