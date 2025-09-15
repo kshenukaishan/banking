@@ -8,16 +8,18 @@ use tokio::sync::Mutex;
 
 pub struct AppState {
     pub db: Mutex<MySqlPool>,
+    pub secret_key: String,
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-
+    
     dotenv::dotenv().ok();
 
     let state = web::Data::new(AppState {
         db: Mutex::new(MySqlPool::connect(&std::env::var("DATABASE_URL").unwrap())
-            .await.unwrap())
+            .await.unwrap()),
+        secret_key: std::env::var("ENCODE_KEY").unwrap(),
     });
 
     HttpServer::new(move || {
