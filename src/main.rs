@@ -9,9 +9,12 @@ use actix_web::{web, App, HttpServer, Responder};
 use actix_web::middleware::from_fn;
 use sqlx::MySqlPool;
 use tokio::sync::Mutex;
+use crate::controllers::account;
+use crate::controllers::account::{account_list, delete_account, update_account};
+use crate::database::account_query::create_account;
 
 pub struct AppState {
-    pub db: Mutex<MySqlPool>,
+    pub db: MySqlPool,
     pub secret_key: String,
 }
 
@@ -21,8 +24,8 @@ async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
 
     let state = web::Data::new(AppState {
-        db: Mutex::new(MySqlPool::connect(&std::env::var("DATABASE_URL").unwrap())
-            .await.unwrap()),
+        db: MySqlPool::connect(&std::env::var("DATABASE_URL").unwrap())
+            .await.unwrap(),
         secret_key: std::env::var("ENCODE_KEY").unwrap(),
     });
 
