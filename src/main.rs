@@ -5,13 +5,9 @@ mod database;
 mod middleware;
 mod utils;
 
-use actix_web::{web, App, HttpServer, Responder};
 use actix_web::middleware::from_fn;
+use actix_web::{web, App, HttpServer, Responder};
 use sqlx::MySqlPool;
-use tokio::sync::Mutex;
-use crate::controllers::account;
-use crate::controllers::account::{account_list, delete_account, update_account};
-use crate::database::account_query::create_account;
 
 pub struct AppState {
     pub db: MySqlPool,
