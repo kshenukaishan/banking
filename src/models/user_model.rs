@@ -1,5 +1,7 @@
+use serde::Serialize;
 use sqlx::types::chrono;
 
+#[derive(Serialize, Debug)]
 pub struct User {
     pub id: u64,
     pub email: String,

@@ -1,4 +1,4 @@
-use crate::databse::user_query::{check_user_exist, create_user, has_email_already};
+use crate::database::user_query::{check_user_exist, create_user, has_email_already};
 use crate::models::claims::Claims;
 use crate::models::sign_in_request::SignInRequest;
 use crate::models::sign_up_request::SignUpRequest;
@@ -9,7 +9,7 @@ use jsonwebtoken::{EncodingKey, Header};
 use serde_json::json;
 use std::time::SystemTime;
 
-#[post("/auth/sign-up")] // Registration
+#[post("/sign-up")] // Registration
 pub async fn sign_up(state: Data<AppState>, user: Json<SignUpRequest>) -> impl Responder {
     let db = state.db.lock().await;
 
@@ -28,7 +28,7 @@ pub async fn sign_up(state: Data<AppState>, user: Json<SignUpRequest>) -> impl R
     }).to_string())
 }
 
-#[post("/auth/login")] // Email, Password
+#[post("/login")] // Email, Password
 pub async fn sign_in(data: Json<SignInRequest>, state: Data<AppState>) -> impl Responder {
     let db = state.db.lock().await;
 
