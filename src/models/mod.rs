@@ -4,3 +4,4 @@ pub mod user_model;
 pub mod claims;
 pub mod update_user_request;
 pub mod account;
+pub mod update_account_request;

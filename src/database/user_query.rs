@@ -1,12 +1,11 @@
-use actix_web::web;
-use bcrypt::{hash, DEFAULT_COST};
-use sqlx::MySqlPool;
-use crate::models::sign_up_request::SignUpRequest;
-use models::user_model::User;
 use crate::models;
+use crate::models::sign_up_request::SignUpRequest;
 use crate::models::update_user_request::UpdateUserRequest;
+use bcrypt::{hash, DEFAULT_COST};
+use models::user_model::User;
+use sqlx::MySqlPool;
 
-pub async fn has_email_already(pool: &MySqlPool, email: &str) -> bool {
+pub async fn has_email_already(pool: &sqlx::MySqlPool, email: &str) -> bool {
     let row = sqlx::query!("SELECT EXISTS(SELECT 1 FROM users WHERE email = ?) AS exists_val", email)
     .fetch_one(pool)
     .await
@@ -14,7 +13,7 @@ pub async fn has_email_already(pool: &MySqlPool, email: &str) -> bool {
     row.exists_val != 0
 }
 
-pub async fn create_user(pool: &MySqlPool, user: &SignUpRequest) -> bool {
+pub async fn create_user(pool: &sqlx::MySqlPool, user: &SignUpRequest) -> bool {
     let hashed_password = hash(&user.password, DEFAULT_COST).unwrap();
     sqlx::query!("INSERT INTO users(`email`,`first_name`,`last_name`,`password`) VALUES (?, ?, ?, ?)",
         &user.email, &user.first_name, &user.last_name, &hashed_password)

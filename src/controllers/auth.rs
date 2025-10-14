@@ -11,7 +11,7 @@ use std::time::SystemTime;
 
 #[post("/sign-up")] // Registration
 pub async fn sign_up(state: Data<AppState>, user: Json<SignUpRequest>) -> impl Responder {
-    let db = &state.db;
+    let db = state.db.lock().unwrap();
 
     if has_email_already(&db, &user.email).await {
         return HttpResponse::UnprocessableEntity().json(json!({
@@ -30,7 +30,7 @@ pub async fn sign_up(state: Data<AppState>, user: Json<SignUpRequest>) -> impl R
 
 #[post("/login")] // Email, Password
 pub async fn sign_in(data: Json<SignInRequest>, state: Data<AppState>) -> impl Responder {
-    let db = &state.db;
+    let db = state.db.lock().unwrap();
 
     let Some(user) = check_user_exist(&db, &data.email).await else {
         return HttpResponse::Unauthorized().json(json!({
